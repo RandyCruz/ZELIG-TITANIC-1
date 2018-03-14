@@ -1,0 +1,188 @@
+---
+title: "Cruz_MA712_HW6_Zelig5_Titanic"
+output: html_notebook
+---
+
+```{r}
+library(sjmisc)
+library(radiant.data)
+library(tidyverse)
+library(Zelig)
+library(texreg)
+library(mvtnorm)
+library(radiant.data)
+library(sjmisc)
+library(lattice)
+library(dplyr)
+library(readr)
+
+
+data(titanic)
+head(titanic)
+```
+
+```{r}
+titanic <- titanic %>% 
+  mutate(surv = as.integer(survived))
+```
+
+```{r}
+titanic <- titanic %>% 
+  select(pclass, survived, surv, everything())
+head(titanic)
+```
+
+
+```{r}
+titanic <- titanic %>%
+  mutate(surv = as.integer(survived)) %>% 
+  mutate(survival = sjmisc::rec(surv, rec = "2=0; 1=1")) %>% 
+  select(pclass, survived, survival, everything())
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+
+library(Zelig)
+z.tit1 <- zlogit$new()
+z.tit1$zelig(survival ~ age, data = titanic)
+summary(z.tit1)
+
+
+library(Zelig)
+z.tit2 <- zlogit$new()
+z.tit2$zelig(survival ~ sex, data = titanic)
+summary(z.tit2)
+
+library(Zelig)
+z.tit3 <- zlogit$new()
+z.tit3$zelig(survival ~ sex*pclass, data = titanic)
+summary(z.tit3)
+
+library(Zelig)
+z.tit <- zlogit$new()
+z.tit$zelig(survival ~ age + sex*pclass + fare, data = titanic)
+summary(z.tit)
+
+
+```
+
+#The Effect of Age
+```{r}
+z.tit <- z.tit
+z.tit$setrange(age = 0:100)
+z.tit$sim()
+z.tit$graph()
+```
+
+#The Effect of Fare
+```{r}
+z.tit$setrange(fare = 0:700)
+z.tit$sim()
+z.tit$graph()
+```
+#Sex Effect
+Main takeaway here is that Females are (0.750)units likely to survive than males. The first diffrences between male and female being (0.544) units
+```{r}
+z.tit2$setx(sex = "male")
+z.tit2$setx1(sex = "female")
+z.tit2$sim()
+summary(z.tit2)
+```
+
+```{r}
+fd <- z.tit$get_qi(xvalue="x1", qi="fd")
+summary(fd)
+```
+
+
+
+```{r}
+z.tit$setx(sex = "male", pclass = "1st") 
+z.tit$setx1(sex = "female", pclass = "1st")
+z.tit$sim()
+
+
+graphics.off()
+ par("mar")
+ par(mar=c(1,1,1,1))
+plot(z.tit)
+
+```
+
+
+```{r}
+sd1 <- z.tit$get_qi(xvalue="x1", qi="fd")
+summary(sd1)
+```
+
+```{r}
+z.tit$setx(sex = "male", pclass = "2nd") 
+z.tit$setx1(sex = "female", pclass = "2nd")
+z.tit$sim()
+
+graphics.off()
+ par("mar")
+ par(mar=c(1,1,1,1))
+plot(z.tit)
+
+```
+
+
+```{r}
+sd2 <- z.tit$get_qi(xvalue="x1", qi="fd")
+summary(sd2)
+```
+```{r}
+z.tit$setx(sex = "male", pclass = "3rd") 
+z.tit$setx1(sex = "female", pclass = "3rd")
+z.tit$sim()
+
+graphics.off()
+ par("mar")
+ par(mar=c(1,1,1,1))
+plot(z.tit)
+
+```
+
+```{r}
+sd3 <- z.tit$get_qi(xvalue="x1", qi="fd")
+summary(sd3)
+```
+```{r}
+
+dfd <- as.data.frame(cbind(sd1, sd2, sd3))
+head(dfd)
+```
+
+
+```{r}
+library(tidyr)
+
+tidd <- dfd %>% 
+  gather(class, simv, 1:3)
+head(tidd)
+```
+
+```{r}
+library(dplyr)
+
+tidd %>% 
+  group_by(class) %>% 
+  summarise(mean = mean(simv), sd = sd(simv))
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(tidd, aes(simv)) + geom_histogram() + facet_grid(~class)
+
+
+```
+
